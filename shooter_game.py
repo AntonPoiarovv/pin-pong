@@ -1,129 +1,209 @@
-from pygame import *
-from random import randint
-font.init()
-font1 = font.Font(None, 80)
-win = font1.render('YOU WIN!', True, (255, 255, 255))
-lose = font1.render('YOU LOSE!', True, (180, 0, 0))
+from tkinter import *
 
-
-font2 = font.Font(None, 36)
-mixer.init()
-mixer.music.load('space.ogg')
-mixer.music.play()
-fire_sound = mixer.Sound('fire.ogg')
-
-
-
-img_back = "galaxy.jpg" 
-img_bullet = "bullet.png"
-img_hero = "rocket.png" 
-img_enemy = "ufo.png" 
-score = 0 
-goal = 10 
-lost = 0
-max_lost = 3 
-class GameSprite(sprite.Sprite):
-    def __init__(self, player_image, player_x, player_y, size_x, size_y, player_speed):
-        sprite.Sprite.__init__(self)
-        self.image = transform.scale(image.load(player_image), (size_x, size_y))
-        self.speed = player_speed
-        self.rect = self.image.get_rect()
-        self.rect.x = player_x
-        self.rect.y = player_y
-    def reset(self):
-        window.blit(self.image, (self.rect.x, self.rect.y))
-
-class Player(GameSprite):
-    def update(self):
-        keys = key.get_pressed()
-        if keys[K_LEFT] and self.rect.x > 5:
-            self.rect.x -= self.speed
-        if keys[K_RIGHT] and self.rect.x < win_width - 80:
-            self.rect.x += self.speed
-    def fire(self):
-        bullet = Bullet(img_bullet, self.rect.centerx, self.rect.top, 15, 20, -15)
-        bullets.add(bullet)
-class Enemy(GameSprite):
-    def update(self):
-        self.rect.y += self.speed
-        global lost
-        if self.rect.y > win_height:
-            self.rect.x = randint(80, win_width - 80)
-            self.rect.y = 0
-            lost = lost + 1
-  
-class Bullet(GameSprite):
-    def update(self):
-        self.rect.y += self.speed
-        if self.rect.y < 0:
-            self.kill()
-
-win_width = 700
-win_height = 500
-display.set_caption("Shooter")
-window = display.set_mode((win_width, win_height))
-background = transform.scale(image.load(img_back), (win_width, win_height))
-
-ship = Player(img_hero, 5, win_height - 100, 80, 100, 10)
-
-monsters = sprite.Group()
-for i in range(1, 6):
-    monster = Enemy(img_enemy, randint(80, win_width - 80), -40, 80, 50, randint(1, 5))
-    monsters.add(monster)
-bullets = sprite.Group()
-
-finish = False
-
-run = True
-while run:
-    for e in event.get():
-        if e.type == QUIT:
-            run = False
-       
-        elif e.type == KEYDOWN:
-            if e.key == K_SPACE:
-                fire_sound.play()
-                ship.fire()
+import random
  
-    if not finish:
-        window.blit(background,(0,0))
-        ship.update()
-        monsters.update()
-        bullets.update()
-        ship.reset()
-        collides = sprite.groupcollide(monsters, bullets, True, True)
-        for c in collides:
-            score = score + 1
-            monster = Enemy(img_enemy, randint(80, win_width - 80), -40, 80, 50, randint(1, 5))
-            monsters.add(monster)
-        if sprite.spritecollide(ship, monsters, False) or lost >= max_lost:
-            finish = True #проиграли, ставим фон и больше не управляем спрайтами.
-            window.blit(lose, (200, 200))
-        if score >= goal:
-            finish = True
-            window.blit(win, (200, 200))
+
+WIDTH = 900
+HEIGHT = 300
+ 
+
+PAD_W = 10
+
+PAD_H = 100
+ 
+
+BALL_SPEED_UP = 1.05
+
+BALL_MAX_SPEED = 40
+
+BALL_RADIUS = 30
+
+INITIAL_SPEED = 20
+BALL_X_SPEED = INITIAL_SPEED
+BALL_Y_SPEED = INITIAL_SPEED
 
 
-     
-        text = font2.render("Счет: " + str(score), 1, (255, 255, 255))
-        window.blit(text, (10, 20))
-        text_lose = font2.render("Пропущено: " + str(lost), 1, (255, 255, 255))
-        window.blit(text_lose, (10, 50))
-        display.update()
-  
+PLAYER_1_SCORE = 0
+PLAYER_2_SCORE = 0
+
+
+right_line_distance = WIDTH - PAD_W
+
+def update_score(player):
+    global PLAYER_1_SCORE, PLAYER_2_SCORE
+    if player == "right":
+        PLAYER_1_SCORE += 1
+        c.itemconfig(p_1_text, text=PLAYER_1_SCORE)
     else:
-        finish = False
-        score = 0
-        lost = 0
-        for b in bullets:
-            b.kill()
-        for m in monsters:
-            m.kill()
-        time.delay(3000)
-        for i in range(1, 6):
-            monster = Enemy(img_enemy, randint(80, win_width - 80), -40, 80, 50, randint(1, 5))
-            monsters.add(monster)
-      
+        PLAYER_2_SCORE += 1
+        c.itemconfig(p_2_text, text=PLAYER_2_SCORE)
+ 
+def spawn_ball():
+    global BALL_X_SPEED
+    
+    c.coords(BALL, WIDTH/2-BALL_RADIUS/2,
+             HEIGHT/2-BALL_RADIUS/2,
+             WIDTH/2+BALL_RADIUS/2,
+             HEIGHT/2+BALL_RADIUS/2)
+    
+    BALL_X_SPEED = -(BALL_X_SPEED * -INITIAL_SPEED) / abs(BALL_X_SPEED)
 
 
-    time.delay(50)
+def bounce(action):
+    global BALL_X_SPEED, BALL_Y_SPEED
+    
+    if action == "strike":
+        BALL_Y_SPEED = random.randrange(-10, 10)
+        if abs(BALL_X_SPEED) < BALL_MAX_SPEED:
+            BALL_X_SPEED *= -BALL_SPEED_UP
+        else:
+            BALL_X_SPEED = -BALL_X_SPEED
+    else:
+        BALL_Y_SPEED = -BALL_Y_SPEED
+
+
+root = Tk()
+root.title("PythonicWay Pong")
+ 
+
+c = Canvas(root, width=WIDTH, height=HEIGHT, background="#003300")
+c.pack()
+ 
+
+c.create_line(PAD_W, 0, PAD_W, HEIGHT, fill="white")
+
+c.create_line(WIDTH-PAD_W, 0, WIDTH-PAD_W, HEIGHT, fill="white")
+
+c.create_line(WIDTH/2, 0, WIDTH/2, HEIGHT, fill="white")
+ 
+
+ 
+
+BALL = c.create_oval(WIDTH/2-BALL_RADIUS/2,
+                     HEIGHT/2-BALL_RADIUS/2,
+                     WIDTH/2+BALL_RADIUS/2,
+                     HEIGHT/2+BALL_RADIUS/2, fill="white")
+ 
+
+LEFT_PAD = c.create_line(PAD_W/2, 0, PAD_W/2, PAD_H, width=PAD_W, fill="yellow")
+ 
+
+RIGHT_PAD = c.create_line(WIDTH-PAD_W/2, 0, WIDTH-PAD_W/2, 
+                          PAD_H, width=PAD_W, fill="yellow")
+
+
+p_1_text = c.create_text(WIDTH-WIDTH/6, PAD_H/4,
+                         text=PLAYER_1_SCORE,
+                         font="Arial 20",
+                         fill="white")
+ 
+p_2_text = c.create_text(WIDTH/6, PAD_H/4,
+                          text=PLAYER_2_SCORE,
+                          font="Arial 20",
+                          fill="white")
+
+
+BALL_X_CHANGE = 20
+
+BALL_Y_CHANGE = 0
+ 
+def move_ball():
+    
+    ball_left, ball_top, ball_right, ball_bot = c.coords(BALL)
+    ball_center = (ball_top + ball_bot) / 2
+ 
+    
+    if ball_right + BALL_X_SPEED < right_line_distance and \
+            ball_left + BALL_X_SPEED > PAD_W:
+        c.move(BALL, BALL_X_SPEED, BALL_Y_SPEED)
+    
+    elif ball_right == right_line_distance or ball_left == PAD_W:
+        
+        if ball_right > WIDTH / 2:
+
+            if c.coords(RIGHT_PAD)[1] < ball_center < c.coords(RIGHT_PAD)[3]:
+                bounce("strike")
+            else:
+               
+                update_score("left")
+                spawn_ball()
+        else:
+        
+            if c.coords(LEFT_PAD)[1] < ball_center < c.coords(LEFT_PAD)[3]:
+                bounce("strike")
+            else:
+                update_score("right")
+                spawn_ball()
+
+    else:
+        if ball_right > WIDTH / 2:
+            c.move(BALL, right_line_distance-ball_right, BALL_Y_SPEED)
+        else:
+            c.move(BALL, -ball_left+PAD_W, BALL_Y_SPEED)
+
+    if ball_top + BALL_Y_SPEED < 0 or ball_bot + BALL_Y_SPEED > HEIGHT:
+        bounce("ricochet")
+
+
+PAD_SPEED = 20
+
+LEFT_PAD_SPEED = 0
+
+RIGHT_PAD_SPEED = 0
+ 
+
+def move_pads():
+    
+    PADS = {LEFT_PAD: LEFT_PAD_SPEED, 
+            RIGHT_PAD: RIGHT_PAD_SPEED}
+   
+    for pad in PADS:
+       
+        c.move(pad, 0, PADS[pad])
+        
+        if c.coords(pad)[1] < 0:
+            c.move(pad, 0, -c.coords(pad)[1])
+        elif c.coords(pad)[3] > HEIGHT:
+            c.move(pad, 0, HEIGHT - c.coords(pad)[3])
+
+ 
+def main():
+    move_ball()
+    move_pads()
+   
+    root.after(30, main)
+
+
+c.focus_set()
+ 
+
+def movement_handler(event):
+    global LEFT_PAD_SPEED, RIGHT_PAD_SPEED
+    if event.keysym == "w":
+        LEFT_PAD_SPEED = -PAD_SPEED
+    elif event.keysym == "s":
+        LEFT_PAD_SPEED = PAD_SPEED
+    elif event.keysym == "Up":
+        RIGHT_PAD_SPEED = -PAD_SPEED
+    elif event.keysym == "Down":
+        RIGHT_PAD_SPEED = PAD_SPEED
+ 
+
+c.bind("<KeyPress>", movement_handler)
+ 
+
+def stop_pad(event):
+    global LEFT_PAD_SPEED, RIGHT_PAD_SPEED
+    if event.keysym in "ws":
+        LEFT_PAD_SPEED = 0
+    elif event.keysym in ("Up", "Down"):
+        RIGHT_PAD_SPEED = 0
+ 
+
+c.bind("<KeyRelease>", stop_pad)
+
+
+main()
+ 
+
+root.mainloop()
